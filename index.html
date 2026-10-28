@@ -1,0 +1,182 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Troll Puzzle Chaos</title><style>
+:root{--bg:#fff3d6;--fg:#2b1d4a;--card:#fff;--ac:#ff5c8a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1030;--fg:#fff3d6;--card:#2d1b52;--ac:#ff7aa2;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1030;--fg:#fff3d6;--card:#2d1b52;--ac:#ff7aa2;color-scheme:dark}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+.scr{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg);z-index:5;padding:16px;text-align:center;overflow:auto}.scr.on{display:flex}
+.scr h1{margin:0;font-size:clamp(30px,8vw,56px)}.scr p{margin:0;max-width:480px}
+button{font:700 18px system-ui;padding:14px 24px;border:0;border-radius:16px;background:var(--ac);color:#fff;min-width:220px;box-shadow:0 4px 0 rgba(0,0,0,.25);cursor:pointer}button:active{transform:translateY(2px)}
+button.g{background:var(--card);color:var(--fg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,52px);gap:8px;max-width:min(580px,96vw);max-height:60vh;overflow:auto;justify-content:center;touch-action:pan-y}.grid button{min-width:0;padding:12px 0;font-size:15px}.grid button:disabled{opacity:.35}
+input{font:700 20px system-ui;padding:10px;border-radius:12px;border:2px solid var(--ac);width:120px;text-align:center;background:var(--card);color:var(--fg);text-transform:uppercase}
+.box{background:var(--card);border-radius:14px;padding:12px 16px;font-size:14px;max-width:460px}
+#hud{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;padding:8px 12px;display:none;z-index:2;gap:8px;align-items:center;pointer-events:none;font-weight:700;color:#2b1d4a}
+#hud button{pointer-events:auto;min-width:0;padding:6px 12px;font-size:16px}
+.bars{flex:1}.bar{height:8px;background:#0003;border-radius:4px;margin:3px 0;overflow:hidden}.bar i{display:block;height:100%;width:0}
+#pb{background:#ff5c8a}#bb{background:#3a86ff}
+#toast{position:fixed;top:22%;left:50%;transform:translateX(-50%);background:#000b;color:#fff;padding:8px 16px;border-radius:20px;z-index:3;display:none;font-weight:700;text-align:center}
+#tc{position:fixed;inset:0;z-index:2;display:none;pointer-events:none}
+#jz{position:absolute;left:0;bottom:0;width:45%;height:55%;pointer-events:auto}
+#kn{position:absolute;width:70px;height:70px;border-radius:50%;background:#fff6;border:3px solid #fff;display:none;margin:-35px}
+.tb{position:absolute;pointer-events:auto;border-radius:50%;background:#ff5c8acc;color:#fff;font:700 15px system-ui;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 3px 0 #0004}
+#bj{right:18px;bottom:24px;width:88px;height:88px}#ba{right:116px;bottom:18px;width:64px;height:64px;background:#3a86ffcc}#bt{right:30px;bottom:124px;width:64px;height:64px;background:#8338eccc}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="hud"><div id="ti">0.0s</div><div class="bars"><div class="bar"><i id="pb"></i></div><div class="bar"><i id="bb"></i></div></div><button id="pz">⏸</button></div>
+<div id="toast"></div>
+<div id="tc"><div id="jz"><div id="kn"></div></div><div class="tb" id="bj">JUMP</div><div class="tb" id="ba">USE</div><div class="tb" id="bt">😈</div></div>
+
+<div class="scr on" id="menu"><h1>🤪 Troll Puzzle Chaos</h1><p>Every level looks easy. Nothing is what it says.</p>
+<button onclick="show('levels')">▶ Play</button><button onclick="show('mp')">👥 Multiplayer</button><button class="g" onclick="show('set')">⚙ Settings</button>
+<div class="box">PC: ← → / A D move · Space/W jump · E use · T troll bot<br>Mobile: joystick + on-screen buttons</div></div>
+
+<div class="scr" id="levels"><h1>100 Levels</h1><div class="grid" id="lg"></div><p>Race the Troll Bot to the real finish!</p><button class="g" onclick="show('menu')">Back</button></div>
+
+<div class="scr" id="mp"><h1>👥 Multiplayer</h1>
+<div class="box">⚠️ Online play is not connected yet. A server is needed for real rooms and matchmaking. The <b>NET</b> adapter in this file marks where to plug one in. Until then you can race the offline Troll Bot.</div>
+<button onclick="mkRoom()">Create room</button><div><input id="rc" maxlength="4" placeholder="CODE"> <button style="min-width:0" onclick="joinRoom()">Join</button></div>
+<div class="box" id="lobby">No room yet.</div><button class="g" onclick="show('menu')">Back</button></div>
+
+<div class="scr" id="set"><h1>Settings</h1><button class="g" onclick="prog=L.length-1;try{localStorage.setItem('tpc_u',prog)}catch(e){}this.textContent='All levels unlocked'">Unlock all levels</button><button class="g" id="sb" onclick="snd=!snd;this.textContent='Sound: '+(snd?'on':'off')">Sound: on</button>
+<button class="g" id="tcb" onclick="tcOn=!tcOn;this.textContent='Touch controls: '+(tcOn?'on':'off')">Touch controls: auto</button>
+<button class="g" onclick="show('menu')">Back</button></div>
+
+<div class="scr" id="pause"><h1>Paused</h1><button onclick="resume()">Resume</button><button class="g" onclick="load(cur)">Restart</button><button class="g" onclick="show('levels')">Levels</button></div>
+<div class="scr" id="win"><h1 id="wt">🎉</h1><p id="wd"></p><button onclick="load(cur+1<L.length?cur+1:0)">Next level</button><button class="g" onclick="load(cur)">Replay</button><button class="g" onclick="show('levels')">Levels</button></div>
+
+<script>
+const $=s=>document.querySelector(s),cv=$('#cv'),cx=cv.getContext('2d');
+let W,H,D=1,S=1,vw,vh,snd=true,AC,tcOn=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+function rs(){D=devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*D;cv.height=H*D;S=Math.min(H/500,W/480);vw=W/S;vh=H/S}
+addEventListener('resize',rs);rs();
+function beep(f,d=.12,t='square'){if(!snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=t;o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+// ---- NET adapter: plug a real backend here (Colyseus, Photon, Supabase Realtime, Firebase...) ----
+const NET={connected:false,createRoom(){},joinRoom(c){},send(m){},onMessage(f){}};
+// ---- Levels ----
+const G=(x,w,y=440)=>({t:'g',x,y,w,h:60});
+const L=[
+{n:'Easy Peasy',len:1650,sx:40,o:[G(0,880),G(1030,700),{t:'v',x:880,y:440,w:150,h:60},{t:'sign',x:80,y:400,s:'EXIT → use the door!'},{t:'d',x:300,y:380},{t:'ff',x:620,y:380},{t:'s',x:1300,y:420,w:40,h:20},{t:'F',x:1620,y:380}]},
+{n:'Don’t Press It',len:1500,sx:40,o:[G(0,700),G(1000,600),{t:'sign',x:40,y:400,s:'The button is SAFE. Trust me.'},{t:'b',x:300,y:420,w:50,h:20,s:'SAFE'},{t:'ff',x:520,y:380},{t:'sign',x:620,y:400,s:'Pits are scary. Jump anyway!'},{t:'h',x:740,y:360,w:70,h:20},{t:'h',x:880,y:360,w:70,h:20},{t:'F',x:1450,y:380}]},
+{n:'Wrong Way',len:1650,sx:400,o:[G(0,1700),{t:'sign',x:300,y:400,s:'← EXIT THIS WAY'},{t:'ff',x:30,y:380},{t:'R',x:700,y:300,w:320,h:140},{t:'sign',x:740,y:400,s:'🔀 left is right'},{t:'s',x:1150,y:420,w:40,h:20},{t:'s',x:1250,y:420,w:40,h:20},{t:'F',x:1620,y:380}]},
+{n:'Moving Day',len:1650,sx:40,o:[G(0,450),G(1010,700),{t:'m',x0:470,x1:800,y:400,w:150,h:20,sp:.8},{t:'sign',x:60,y:400,s:'Ride the lift. Or don’t.'},{t:'ff',x:1250,y:380},{t:'F',x:1650,y:380}]},
+{n:'Upside Down',len:1700,sx:40,o:[G(0,1400),G(1460,300),{t:'v',x:1400,y:440,w:60,h:60},{t:'g',x:560,y:0,w:500,h:50},{t:'Z',x:560,y:50,w:500,h:390},{t:'s',x:700,y:420,w:60,h:20},{t:'sign',x:60,y:400,s:'Gravity is a suggestion.'},{t:'d',x:300,y:380},{t:'ff',x:1250,y:380},{t:'F',x:1700,y:380}]}
+];
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const NM=['Sneaky','Evil','Wobbly','Spicy','Cursed','Sticky','Greedy','Silly','Sketchy','Haunted'],NN=['Hallway','Bridge','Trap','Castle','Lab','Factory','Dungeon','Cloud','Maze','Stairway'],LIE=['Totally safe!','Don’t jump here','Free cookies →','Spikes are fake','Shortcut! (trust me)','Nothing to see here'],BL=['SAFE','FREE COINS','WIN','CLICK ME','JUMP HERE'];
+function gen(i){
+ const r=rng(i*7919+13),d=(i-5)/94,o=[],cp=[];let x=0;
+ const pk=a=>a[Math.floor(r()*a.length)];
+ const run=(sp,len0)=>{const len=len0||140+sp*190+Math.floor(r()*60);o.push(G(x,len));if(!sp)cp.push(x+30);
+  for(let k=0;k<sp;k++){const slot=(len-140)/sp,w=r()<d*.6?80:40,px=x+70+slot*k+r()*Math.max(0,slot-w);o.push(r()<.25?{t:'b',x:px,y:420,w:50,h:20,s:pk(BL)}:{t:'s',x:px,y:420,w,h:20})}
+  if(sp&&r()<.5)o.push({t:'sign',x:x+20,y:400,s:pk(LIE)});x+=len};
+ const T={
+  run:()=>run(1+Math.floor(d*3+r())),
+  gap:()=>{const g=80+Math.floor(d*50+r()*10);if(r()<.5)o.push({t:'v',x,y:440,w:g,h:60});x+=g;run(0,160)},
+  hid:()=>{o.push({t:'h',x:x+30,y:360,w:80,h:20},{t:'h',x:x+170,y:360,w:80,h:20},{t:'sign',x:x-120,y:400,s:'Jump anyway!'});x+=280;run(0,160)},
+  lift:()=>{const rg=250+Math.floor(d*150),w=Math.round(110-d*30);o.push({t:'m',x0:x+20,x1:x+20+rg,y:400,w,h:20,sp:+(1.1+d*1.2).toFixed(2)});x+=20+rg+w+60;run(0,160)},
+  stairs:()=>{const k=2+Math.floor(d*2+r());for(let j=1;j<=k;j++){x+=90;o.push({t:'g',x,y:440-60*j,w:100,h:20});x+=100}for(let j=k-1;j>=1;j--){x+=90;o.push({t:'g',x,y:440-60*j,w:100,h:20});x+=100}x+=90;run(0,160)},
+  rev:()=>{const len=260+Math.floor(d*160);o.push(G(x,len),{t:'R',x,y:300,w:len,h:140},{t:'s',x:x+len*.35,y:420,w:40,h:20},{t:'s',x:x+len*.7,y:420,w:40,h:20});x+=len;run(0,160)},
+  mouse:()=>{const len=260;o.push(G(x,len),{t:'M',x:x+105,y:410,w:50,h:30},{t:'sign',x:x+10,y:400,s:'Free cheese! 🧀'});x+=len;run(0,160)},
+  dark:()=>{const len=300+Math.floor(d*150);o.push(G(x,len),{t:'D',x,y:0,w:len,h:500},{t:'s',x:x+len*.3,y:420,w:40,h:20},{t:'s',x:x+len*.55,y:420,w:40,h:20},{t:'s',x:x+len*.8,y:420,w:40,h:20});x+=len;run(0,160)},
+  fake:()=>{o.push({t:'X',x:x+10,y:400,w:100,h:20},{t:'X',x:x+110,y:400,w:100,h:20},{t:'X',x:x+210,y:400,w:100,h:20},{t:'g',x:x+40,y:360,w:70,h:20},{t:'g',x:x+190,y:360,w:70,h:20},{t:'sign',x:x-110,y:400,s:'Walk the bridge!'});x+=320;run(0,160)},
+  grav:()=>{const w=420+Math.floor(d*80);o.push(G(x,w+200),{t:'g',x,y:0,w,h:50},{t:'Z',x,y:50,w,h:390},{t:'s',x:x+w*.4,y:420,w:60,h:20});x+=w+200}
+ };
+ const pool=['run','gap'];if(d>.04)pool.push('mouse');if(d>.06)pool.push('dark');if(d>.12)pool.push('fake');if(d>.08)pool.push('hid');if(d>.15)pool.push('lift');if(d>.22)pool.push('stairs');if(d>.3)pool.push('rev');if(d>.4)pool.push('grav');
+ const n=4+Math.floor(d*9),ffi=r()<.7?1+Math.floor(r()*(n-1)):-1;
+ run(0,300);
+ for(let s=0;s<n;s++){if(s==ffi){run(0,260);o.push({t:'ff',x:x-150,y:380},{t:'sign',x:x-250,y:400,s:'FINISH →'})}T[(s==2&&{7:'mouse',9:'dark',11:'fake'}[i])||pk(pool)]()}
+ run(0,260);o.push({t:'F',x:x-120,y:380});
+ return{n:pk(NM)+' '+pk(NN),len:x,sx:40,o,cp}}
+for(let i=5;i<100;i++)L.push(gen(i));
+// ---- State ----
+let dk=0,cpx=0,P,objs,cur=0,state='menu',deaths=0,tm=0,botx=0,bfz=0,tcd=0,bcd=12,revT=0,joy=0,tt=0;const K={};let prog=0;
+try{prog=+localStorage.getItem('tpc_u')||0}catch(e){}
+function buildGrid(){$('#lg').innerHTML='';for(let i=0;i<L.length;i++){const b=document.createElement('button');b.textContent=i+1;b.disabled=i>prog;b.onclick=()=>load(i);$('#lg').appendChild(b)}}
+function show(id){document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));$('#'+id).classList.add('on');state=id=='pause'?'pause':'ui';$('#hud').style.display='none';$('#tc').style.display='none';if(id=='levels')buildGrid()}
+function toast(s,ms=1400){const e=$('#toast');e.textContent=s;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',ms)}
+function reset(){objs=JSON.parse(JSON.stringify(L[cur].o));P={x:cpx,y:380,w:26,h:36,vx:0,vy:0,on:false,f:1}}
+function load(i){cur=i;cpx=L[i].sx;dk=0;deaths=0;tm=0;botx=0;bfz=0;tcd=0;bcd=12;revT=0;reset();document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));state='play';$('#hud').style.display='flex';$('#tc').style.display=tcOn?'block':'none';toast('Level '+(i+1)+': '+L[i].n,1500)}
+function resume(){document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));state='play';$('#hud').style.display='flex';$('#tc').style.display=tcOn?'block':'none'}
+function die(m){const dd=deaths+1;beep(120,.3,'sawtooth');load(cur);deaths=dd;toast(m+' Restarting!',1600)}
+function mkRoom(){const c=Math.random().toString(36).slice(2,6).toUpperCase();NET.createRoom(c);$('#lobby').innerHTML='Room <b>'+c+'</b> (local only)<br>😀 You · 🤖 Troll Bot (offline)<br><button style="margin-top:8px;min-width:0" onclick="load(0)">Start vs bot</button>'}
+function joinRoom(){const c=$('#rc').value.trim();NET.joinRoom(c);$('#lobby').textContent=NET.connected?'Joining…':'Can’t join '+(c||'room')+': no server is connected yet.'}
+// ---- Input ----
+const km={ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r',ArrowUp:'j',w:'j',' ':'j'};
+addEventListener('keydown',e=>{const k=km[e.key];if(k)K[k]=true;if(e.key=='e'||e.key=='Enter')K.a=true;if(e.key=='t'||e.key=='Shift')K.t=true;if(e.key=='Escape'&&state=='play')$('#pz').click();if(k)e.preventDefault()});
+addEventListener('keyup',e=>{const k=km[e.key];if(k)K[k]=false});
+$('#pz').onclick=()=>{if(state=='play')show('pause')};
+const hold=(el,k,edge)=>{el.addEventListener('pointerdown',e=>{K[k]=true;e.preventDefault()});if(!edge)['pointerup','pointercancel','pointerleave'].forEach(n=>el.addEventListener(n,()=>K[k]=false))};
+hold($('#bj'),'j');hold($('#ba'),'a',1);hold($('#bt'),'t',1);
+const jz=$('#jz'),kn=$('#kn');let jo=null;
+jz.addEventListener('pointerdown',e=>{jo={x:e.clientX,id:e.pointerId};jz.setPointerCapture(e.pointerId);kn.style.display='block';kn.style.left=e.clientX+'px';kn.style.top=e.clientY-jz.getBoundingClientRect().top+'px'});
+jz.addEventListener('pointermove',e=>{if(!jo)return;const dx=e.clientX-jo.x;joy=Math.abs(dx)<12?0:Math.max(-1,Math.min(1,dx/50));kn.style.left=jo.x+Math.max(-50,Math.min(50,dx))+'px'});
+['pointerup','pointercancel'].forEach(n=>jz.addEventListener(n,()=>{jo=null;joy=0;kn.style.display='none'}));
+// ---- Logic ----
+const hit=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const zone=t=>objs.some(o=>o.t==t&&hit(P,o));
+const sol=()=>objs.filter(o=>o.t=='g'||o.t=='h'||o.t=='m'||(o.t=='v'&&!o.gone));
+let gd=1;
+function col(ax){for(const o of sol())if(hit(P,o)){if(o.t=='h')o.show=1;
+ if(ax){P.x=P.vx>0?o.x-P.w:o.x+o.w}else{if(P.vy*gd>0){P.on=true;P.y=gd>0?o.y-P.h:o.y+o.h}else P.y=gd>0?o.y+o.h:o.y-P.h;P.vy=0}}}
+function upd(dt){
+ tm+=dt;tt+=dt;
+ for(const o of objs){if(o.t=='m'){const nx=o.x0+(o.x1-o.x0)*(.5+.5*Math.sin(tt*o.sp));if(Math.abs(P.y+P.h-o.y)<3&&P.x+P.w>o.x&&P.x<o.x+o.w)P.x+=nx-o.x;o.x=nx}
+  if(o.t=='v'&&!o.gone&&P.x>o.x-120){o.gone=1;beep(200,.2)}}
+ let ax=(K.l?-1:0)+(K.r?1:0)+joy;ax=Math.max(-1,Math.min(1,ax));
+ if(zone('R')||revT>0)ax=-ax;
+ if(ax)P.f=Math.sign(ax);P.vx=ax*260;
+ gd=zone('Z')?-1:1;P.vy=Math.max(-1100,Math.min(1100,P.vy+1800*gd*dt));
+ if(K.j&&P.on){P.vy=-600*gd;P.on=false;beep(520,.08)}
+ P.x=Math.max(0,P.x+P.vx*dt);col(1);P.y+=P.vy*dt;P.on=false;col(0);
+ // troll ability + bot
+ tcd=Math.max(0,tcd-dt);bfz=Math.max(0,bfz-dt);revT=Math.max(0,revT-dt);bcd-=dt;
+ if(K.t&&tcd<=0){tcd=7;bfz=2.5;toast('😈 Troll Bot frozen!');beep(700,.2,'triangle')}
+ if(bfz<=0)botx+=(100+cur*.9)*dt;
+ if(bcd<=0){bcd=Math.max(6,14+Math.random()*8-cur*.08);revT=2;toast('🤖 Bot trolled you: controls flipped!');beep(160,.3,'sawtooth')}
+ for(const c of L[cur].cp||[])if(P.on&&P.x>c&&c>cpx){cpx=c;toast('✔ Checkpoint',700);beep(660,.1,'triangle')}
+ const inD=objs.some(o=>o.t=='D'&&hit(P,o));dk+=((inD?1:0)-dk)*Math.min(1,dt*6);
+ // hazards
+ for(const o of objs){
+  if(o.t=='M'){const dx=Math.abs(P.x+13-(o.x+o.w/2));if(o.a==null&&dx<80&&P.y+P.h>380)o.a=.4;if(o.a>0){o.a-=dt;if(o.a<=0){o.q=.3;beep(90,.25,'sawtooth')}}if(o.q>0){o.q-=dt;if(hit(P,{x:o.x-10,y:400,w:o.w+20,h:40}))return die('SNAP! Mouse trap!')}}
+  if(o.t=='X'&&!o.p&&hit(P,o)){o.p=1;beep(240,.15,'triangle');toast('Fake block! 😜',900)}
+  if(o.t=='s'&&hit(P,o))return die('Ouch! Spikes!');
+  if(o.t=='b'&&hit(P,o))return die('“'+o.s+'” was a lie!');
+  if(o.t=='d'&&hit(P,{x:o.x,y:o.y,w:40,h:60})&&K.a){P.x=L[cur].sx;P.y=380;P.vy=0;toast('Door said OPEN… teleported back!');beep(300,.3)}
+  if(o.t=='ff'&&hit(P,{x:o.x,y:o.y,w:40,h:60})){toast('FAKE FINISH! Back to start 😂');cpx=L[cur].sx;reset();beep(250,.3);return}
+  if(o.t=='F'&&hit(P,{x:o.x,y:o.y,w:40,h:60}))return finish()}
+ if(P.y>700||P.y<-300){cpx=L[cur].sx;die('Fell in a hole! Back to the start 🕳️')}
+ K.a=false;K.t=false;
+ $('#ti').textContent=tm.toFixed(1)+'s ☠'+deaths;$('#pb').style.width=Math.min(100,P.x/L[cur].len*100)+'%';$('#bb').style.width=Math.min(100,botx/L[cur].len*100)+'%';
+ $('#bt').textContent=tcd>0?Math.ceil(tcd):'😈'}
+function finish(){state='ui';beep(880,.4,'triangle');$('#hud').style.display='none';$('#tc').style.display='none';
+ const beat=botx<L[cur].len;if(cur+1>prog){prog=Math.min(cur+1,L.length-1);try{localStorage.setItem('tpc_u',prog)}catch(e){}}
+ $('#wt').textContent=beat?'🏆 You beat the Troll Bot!':'🤖 Bot finished first!';$('#wd').textContent='Time '+tm.toFixed(1)+'s · '+deaths+' deaths'+(beat?'':' (you still cleared it)');
+ document.querySelectorAll('.scr').forEach(e=>e.classList.remove('on'));$('#win').classList.add('on')}
+// ---- Draw ----
+function em(s,x,y,sz){cx.font=sz+'px serif';cx.fillText(s,x,y)}
+function draw(){
+ cx.setTransform(D,0,0,D,0,0);const g=cx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#7fd4ff');g.addColorStop(1,'#ffe8a3');cx.fillStyle=g;cx.fillRect(0,0,W,H);
+ if(!objs||state=='menu')return;
+ const cxp=Math.max(-60,P.x-vw/3),cyp=250-vh/2;cx.setTransform(D*S,0,0,D*S,-cxp*D*S,-cyp*D*S);cx.textBaseline='bottom';
+ for(const o of objs){
+  if(o.t=='g'||(o.t=='v'&&!o.gone)){cx.fillStyle='#6b4423';cx.fillRect(o.x,o.y,o.w,o.h);cx.fillStyle='#4cc35a';cx.fillRect(o.x,o.y,o.w,10)}
+  else if(o.t=='h'&&o.show){cx.fillStyle='#b07acc';cx.fillRect(o.x,o.y,o.w,o.h)}
+  else if(o.t=='m'){cx.fillStyle='#ff9f1c';cx.fillRect(o.x,o.y,o.w,o.h)}
+  else if(o.t=='s'){cx.fillStyle='#e63946';for(let x=o.x;x<o.x+o.w;x+=20){cx.beginPath();cx.moveTo(x,o.y+o.h);cx.lineTo(x+10,o.y);cx.lineTo(x+20,o.y+o.h);cx.fill()}}
+  else if(o.t=='b'){cx.fillStyle='#d00';cx.fillRect(o.x,o.y,o.w,o.h);cx.fillStyle='#2b1d4a';cx.font='bold 13px system-ui';cx.textAlign='center';cx.fillText(o.s,o.x+o.w/2,o.y-4);cx.textAlign='left'}
+  else if(o.t=='d'){cx.fillStyle='#8b5a2b';cx.fillRect(o.x,o.y,40,60);cx.fillStyle='#fff';cx.font='bold 12px system-ui';cx.fillText('OPEN',o.x+4,o.y+34)}
+  else if(o.t=='ff')em('🏁',o.x,o.y+60,48);
+  else if(o.t=='F'){em('🏁',o.x,o.y+60,48);cx.strokeStyle='#ffd60a';cx.lineWidth=3;cx.strokeRect(o.x-4,o.y+6,50,56)}
+  else if(o.t=='X'){cx.globalAlpha=o.p?.25:1;cx.fillStyle='#6b4423';cx.fillRect(o.x,o.y,o.w,o.h);cx.fillStyle='#4cc35a';cx.fillRect(o.x,o.y,o.w,10);cx.globalAlpha=1}
+  else if(o.t=='D'){cx.fillStyle='#00000040';cx.fillRect(o.x,o.y,o.w,o.h);em('🌑',o.x+10,o.y+60,32)}
+  else if(o.t=='M'){cx.fillStyle='#c68642';cx.fillRect(o.x,o.y+16,o.w,14);cx.fillStyle='#8d5524';cx.fillRect(o.x,o.y+26,o.w,4);em('🧀',o.x+14,o.y+20,22);if(o.q>0){cx.fillStyle='#d62828';cx.fillRect(o.x-10,o.y-4,o.w+20,10)}else{cx.fillStyle='#999';cx.fillRect(o.x+o.w-8,o.y-6,6,24)}}
+  else if(o.t=='R'||o.t=='Z'){cx.fillStyle=o.t=='R'?'#8338ec44':'#00e5ff44';cx.fillRect(o.x,o.y,o.w,o.h)}
+  else if(o.t=='sign'){cx.font='bold 14px system-ui';const w=cx.measureText(o.s).width+16;cx.fillStyle='#fff';cx.fillRect(o.x,o.y-22,w,26);cx.fillStyle='#2b1d4a';cx.fillText(o.s,o.x+8,o.y)}}
+ em('🤖',botx,404,32);
+ cx.fillStyle=revT>0?'#8338ec':'#ff5c8a';cx.beginPath();cx.roundRect(P.x,P.y,P.w,P.h,8);cx.fill();
+ const ey=gd>0?P.y+14:P.y+P.h-14;cx.fillStyle='#fff';cx.fillRect(P.x+4,ey-5,8,10);cx.fillRect(P.x+14,ey-5,8,10);cx.fillStyle='#000';cx.fillRect(P.x+(P.f>0?8:4),ey-2,4,5);cx.fillRect(P.x+(P.f>0?18:14),ey-2,4,5);
+ if(dk>.02){cx.setTransform(D,0,0,D,0,0);const px=(P.x+13-cxp)*S,py=(P.y+18-cyp)*S,rr=95*S,g2=cx.createRadialGradient(px,py,rr*.35,px,py,rr);g2.addColorStop(0,'rgba(0,0,0,0)');g2.addColorStop(1,'rgba(0,0,0,'+(.96*dk)+')');cx.fillStyle=g2;cx.fillRect(0,0,W,H)}}
+let last=0;function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.033,(ts-last)/1000||0);last=ts;if(state=='play')upd(dt);draw()}
+requestAnimationFrame(loop);
+</script></body></html>
